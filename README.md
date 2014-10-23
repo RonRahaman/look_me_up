@@ -21,11 +21,6 @@ arrays.  The key features are:
   ![alt text](/img/integral.png "integral")
   
 
-- **Some semblance to cross-section lookups:** The operations loosely resemble
-  microscopic cross-section lookups in Monte Carlo neutron transport, which is
-  our target applicaiton.  This algorithm has been abstracted from [XSBench](https://github.com/ANL-CESAR/XSBench), 
-  which was abstracted from [OpenMC](https://github.com/mit-crpg/openmc).
-
 ## Usage
 
 After compiling, the executables are run as:
