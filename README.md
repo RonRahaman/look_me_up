@@ -14,9 +14,12 @@ arrays.  The key features are:
   lookups, which can pose interesting challenges.
 
 - **Easily verifiable result:** The data arrays are populated such that the
-  lookups perform a Monte Carlo integration.  By default, the integral is:
+  lookups perform a Monte Carlo integration.  The result should be
+  statistically indistinguishable for any threading implementation. By default,
+  the integral is:
+
   ![alt text](/img/integral.png "integral")
-  The result should be statistically indistinguishable for any threading implementation.
+  
 
 - **Some semblance to cross-section lookups:** The operations loosely resemble
   microscopic cross-section lookups in Monte Carlo neutron transport, which is
