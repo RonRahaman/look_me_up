@@ -3,6 +3,7 @@
 #include <time.h>
 #include <math.h>
 
+// function to integrate
 #define F(x) (x*x)
 
 int main(int argc, char* argv[]) {
@@ -12,22 +13,22 @@ int main(int argc, char* argv[]) {
   //number of gridpoints
   long n_grid  = (argc < 3) ? 250000000 : atol(argv[2]);    
   // Discrete values for F(x)
-  double * restrict F_vals = (double *) malloc(n_grid*sizeof(double));
+  double * F_vals = (double *) malloc(n_grid*sizeof(double));
   // interval for linearly-spaced grid
   double interval = (double) 1 / (n_grid - 1);
-
+  // Sum of random lookups on F_vals
   double sum = 0;
 
-  clock_t start, end;
-  double cpu_time;
-  double x, f;
-  long i, j, k;
+  clock_t start, end; // start and end times
+  double cpu_time;    // cpu_time elapsed
+  long i, j, k;       // loop control
+  double x, f;        // x value and interpolation factor
 
   printf("Running %0.2e lookups with %0.2e gridpoints in a %0.2f MB array...\n", 
       (double) n_lookups, (double) n_grid, (double) n_grid*sizeof(double)/1e6);
 
   // Populate values for F(x) on grid
-  for (long i=0; i<n_grid; i++) {
+  for (i=0; i<n_grid; i++) {
     F_vals[i] = F(i*interval);
   }
 
@@ -37,6 +38,7 @@ int main(int argc, char* argv[]) {
   start = clock();
 
   for (i=0; i<n_lookups; i++) {
+
     // Randomly sample a continous value for x
     x = (double) rand() / RAND_MAX;
 

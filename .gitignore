@@ -1,2 +1,3 @@
-main
+main_serial
+main_omp
 *.swp
