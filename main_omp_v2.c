@@ -7,10 +7,6 @@
 // function to integrate
 #define F(x) (x*x)
 
-// threadprivate seed for RNG
-unsigned int seed;
-#pragma omp threadprivate(seed)
-
 int main(int argc, char* argv[]) {
 
   // number of lookups
@@ -28,6 +24,7 @@ int main(int argc, char* argv[]) {
   double wall_time;  // wall_time elapsed
   long i, j, k;      // loop control
   double x, f;       // x value and interpolation factor
+  unsigned int seed; // seed for RNG
 
   printf("Running %0.2e lookups with %0.2e gridpoints in a %0.2f MB array...\n", 
       (double) n_lookups, (double) n_grid, (double) n_grid*sizeof(double)/1e6);
@@ -37,32 +34,32 @@ int main(int argc, char* argv[]) {
     F_vals[i] = F(i*interval);
   }
 
-  // Initialize seeds
-#pragma omp parallel
-  {
-    seed = omp_get_thread_num() * omp_get_wtime() * 1000;
-  }
-
   start = omp_get_wtime();
 
-#pragma omp parallel for \
-  default(none) shared(n_lookups,interval,F_vals) private(i,j,k,x,f) \
-  schedule(dynamic) \
+#pragma omp parallel \
+  default(none) shared(n_lookups,interval,F_vals) private(seed,i,j,k,x,f)\
   reduction(+:sum)
-  for (i=0; i<n_lookups; i++) {
+  {
 
-    // Randomly sample a continous value for x
-    x = (double) rand_r(&seed) / RAND_MAX;
+    // Initialize seeds
+    seed = omp_get_thread_num() * omp_get_wtime() * 1000;
 
-    // Find the indices that bound x on the grid
-    j = x / interval;
-    k = j+1;
+#pragma omp for schedule(dynamic)
+    for (i=0; i<n_lookups; i++) {
 
-    // Calculate interpolation factor
-    f = (k*interval - x) / (k*interval - j*interval);
+      // Randomly sample a continous value for x
+      x = (double) rand_r(&seed) / RAND_MAX;
 
-    // Interpolate and accumulate result
-    sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+      // Find the indices that bound x on the grid
+      j = x / interval;
+      k = j+1;
+
+      // Calculate interpolation factor
+      f = (k*interval - x) / (k*interval - j*interval);
+
+      // Interpolate and accumulate result
+      sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+    }
   }
 
   end = omp_get_wtime();
