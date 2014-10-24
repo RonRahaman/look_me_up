@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 
 #pragma omp parallel for \
   default(none) shared(n_lookups,interval,F_vals) private(i,j,k,x,f) \
-  schedule(dynamic) \
+  schedule(static) \
   reduction(+:sum)
   for (i=0; i<n_lookups; i++) {
 

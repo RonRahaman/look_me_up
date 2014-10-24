@@ -1,0 +1,16 @@
+CC = pgcc
+CFLAGS = -Minform=inform -Mpreprocess -fast
+
+all: main_serial main_omp main_omp_v2
+
+main_serial: main_serial.c
+	$(CC) $(CFLAGS) $^ -o $@ -lm
+
+main_omp: main_omp.c
+	$(CC) $(CFLAGS) -mp -Minfo=mp $^ -o $@ -lm
+
+main_omp_v2: main_omp_v2.c
+	$(CC) $(CFLAGS) -mp -Minfo=mp $^ -o $@ -lm
+
+clean:
+	rm -f main_serial main_omp

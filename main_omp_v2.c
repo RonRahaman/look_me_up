@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     // Initialize seeds
     seed = omp_get_thread_num() * omp_get_wtime() * 1000;
 
-#pragma omp for schedule(dynamic)
+#pragma omp for schedule(static)
     for (i=0; i<n_lookups; i++) {
 
       // Randomly sample a continous value for x
