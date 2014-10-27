@@ -1,4 +1,5 @@
 main_serial
 main_omp
 main_omp_v2
+main_acc
 *.swp

@@ -13,4 +13,4 @@ main_omp_v2: main_omp_v2.c
 	$(CC) $(CFLAGS) -fopenmp $^ -o $@ -lm
 
 clean:
-	rm -f main_serial main_omp
+	rm -f main_serial main_omp main_omp_v2
