@@ -2,29 +2,22 @@
 #include <stdlib.h>
 #include <sys/time.h>
 #include <math.h>
-#include <openacc.h>
 
 // function to integrate
 #define F(x) (x*x)
 
-// Compiler does not support mod operator for unsigned longs
 #pragma acc routine seq
-// double rn(unsigned long * seed)
-double rn(unsigned * seed)
+double rn(unsigned long * seed)
 {
-	double ret;
-	// unsigned long n1;
-	// unsigned long a = 16807;
-	// unsigned long m = 2147483647;
-  // unsigned long t = a * (*seed);
-	unsigned n1;
-	unsigned a = 16807;
-	unsigned m = 2147483647;
-  unsigned t = a * (*seed);
-	n1 = ( a * (*seed) ) % m;
-	*seed = n1;
-	ret = (double) n1 / m;
-	return ret;
+  double ret;
+  unsigned long n1;
+  unsigned long a = 16807;
+  unsigned long m = 2147483647;
+  unsigned long t = a * (*seed);
+  n1 = ( a * (*seed) ) % m;
+  *seed = n1;
+  ret = (double) n1 / m;
+  return ret;
 }
 
 
@@ -46,7 +39,7 @@ int main(int argc, char* argv[]) {
   double wall_time;  // wall_time elapsed
   long i, j, k;      // loop control
   double x, f;       // x value and interpolation factor
-  unsigned seed; // seed for RNG
+  unsigned long seed; // seed for RNG
 
   printf("Running %0.2e lookups with %0.2e gridpoints in a %0.2f MB array...\n", 
       (double) n_lookups, (double) n_grid, (double) n_grid*sizeof(double)/1e6);
@@ -56,30 +49,25 @@ int main(int argc, char* argv[]) {
     F_vals[i] = F(i*interval);
   }
 
-#pragma acc data copyin(F_vals[0:n_grid], n_lookups, interval) create(seed)
-
   gettimeofday(&start, NULL);
 
-#pragma acc kernels
-  {
-    // Initialize seeds
-    seed = 1000;
+  // Initialize seeds
+  seed = 1000;
 
-    for (i=0; i<n_lookups; i++) {
+  for (i=0; i<n_lookups; i++) {
 
-      // Randomly sample a continous value for x
-      x = (double) rn(&seed);
+    // Randomly sample a continous value for x
+    x = (double) rn(&seed);
 
-      // Find the indices that bound x on the grid
-      j = x / interval;
-      k = j+1;
+    // Find the indices that bound x on the grid
+    j = x / interval;
+    k = j+1;
 
-      // Calculate interpolation factor
-      f = (k*interval - x) / (k*interval - j*interval);
+    // Calculate interpolation factor
+    f = (k*interval - x) / (k*interval - j*interval);
 
-      // Interpolate and accumulate result
-      sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
-    }
+    // Interpolate and accumulate result
+    sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
   }
 
   gettimeofday(&end, NULL);
