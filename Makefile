@@ -27,5 +27,8 @@ main_omp_v2: main_omp_v2.c
 main_acc: main_acc.c
 	$(CC) $(CFLAGS) $(ACC_FLAGS) $^ -o $@
 
+main_cuda: main_cuda.cu
+	nvcc $^ -o $@
+
 clean:
 	rm -f $(OBJECTS)
