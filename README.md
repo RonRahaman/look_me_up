@@ -1,22 +1,21 @@
-#Look\_Me\_Up
+#look\_me\_up
 
 ## Purpose 
 
-These programs are very simple benchmarks for doing stochastic lookups on data
-arrays.  The key features are: 
+These programs are very simple examples for doing stochastic lookups on a data
+array.  The key features are: 
 
-- **Simple tool for learning threading APIs:**  We hope the program is simple
-  enough to be a quick and easy introduction to new threading APIs, such as
-  OpenACC and OCCA.  
+- **Multiple threading APIs:**  The programs demonstrate multiple
+  threading APIs, including OpenMP, CUDA, OpenACC, and OCCA.  
 
-- **Example for stochastic lookuups:** Most threading tutorials focus on
-  linear algebra applications.  There are few examples for stochastic
-  lookups, which can pose interesting challenges.
+- **Simple example for stochastic lookups:** Stochastic lookups can pose
+  interesting challenges for multithreading, but there are few simple demos for
+  the problem.  
 
-- **Easily verifiable result:** The data arrays are populated such that the
-  lookups perform a Monte Carlo integration.  The result should be
-  statistically indistinguishable for any threading implementation. By default,
-  the integral is:
+- **Easily verifiable result:** The data array is populated such that the
+  stochastic lookups will perform a Monte Carlo integration.  For any threading
+  implementation, the result should be the same, within statistical error. By
+  default, the integral is:
 
   ![alt text](/img/integral.png "integral")
   
@@ -27,4 +26,6 @@ After compiling, the executables are run as:
   ```
   main [n_lookups [n_gridpoints]]
   ```
-Both parameters are optional and have default values.  
+where n_lookups is the total number of lookups to perform; and n_gridpoints are
+the number of elements in the data array.  Both parameters are optional and
+have default values.  
