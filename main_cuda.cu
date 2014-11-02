@@ -26,7 +26,7 @@ __device__ double rn(unsigned long * seed)
 }
 
 __global__ void lookup(double *F_vals, long F_len, double interval, 
-     long total_lookups, double *sums) {
+    long total_lookups, double *sums) {
 
   __shared__ double sum_cache[threads_per_block];
   long i,j,k;
@@ -82,15 +82,20 @@ int main(int argc, char* argv[]) {
   double interval = (double) 1 / (F_len - 1);
   // Sum of random lookups on F_vals
   double sum = 0;
-  long i;
-
+  // Vectors for sums of F(x_i).  Dimensions will be sums[0:blocks_per_grid].
+  // Each block j will reduce is results to sum[i].
   double *sums, *dev_sums;
-  // struct timeval start, end; // start and end times
-  // double wall_time;  // wall_time elapsed
+  // Timing
+  cudaEvent_t start, stop;
+  float elapsed_time;
+  // Look control
+  long i;
 
   printf("Running %0.2e lookups with %0.2e gridpoints in a %0.2f MB array...\n", 
       (double) n_lookups, (double) F_len, (double) F_len*sizeof(double)/1e6);
 
+  CUDA_CALL( cudaEventCreate( &start ) );
+  CUDA_CALL( cudaEventCreate( &stop ) );
 
   sums = (double *) malloc( blocks_per_grid*sizeof(double) );
   F_vals = (double *) malloc(F_len*sizeof(double));
@@ -108,25 +113,27 @@ int main(int argc, char* argv[]) {
   CUDA_CALL( cudaMalloc( (void**)&dev_F_vals, F_len*sizeof(double)) );
   CUDA_CALL( cudaMemcpy( dev_F_vals, F_vals, F_len*sizeof(double), cudaMemcpyHostToDevice ) );
 
+  CUDA_CALL( cudaEventRecord( start, 0 ) );
+
   lookup<<<blocks_per_grid,threads_per_block>>>(dev_F_vals, F_len, interval, n_lookups, dev_sums);
+
+  CUDA_CALL( cudaEventRecord( stop, 0 ) );
+  CUDA_CALL( cudaEventSynchronize( stop ) );
 
   CUDA_CALL( cudaMemcpy( sums, dev_sums, threads_per_block*sizeof(double), cudaMemcpyDeviceToHost ));
 
-
-  // gettimeofday(&start, NULL);
-
-
-  // gettimeofday(&end, NULL);
-
-  // wall_time = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec - start.tv_usec);
 
   for (i=0; i<blocks_per_grid; i++) {
     sum += sums[i];
   }
 
+  CUDA_CALL( cudaEventElapsedTime( &elapsed_time, start, stop ) );
+  CUDA_CALL( cudaEventDestroy( start ) );
+  CUDA_CALL( cudaEventDestroy( stop ) );
+
   printf("Result: %0.6f\n", sum / n_lookups);
-  // printf("Time:   %0.2e s\n", wall_time);
-  // printf("Rate:   %0.2e lookups/s\n", n_lookups / wall_time);
+  printf("Time:   %0.2e s\n", elapsed_time);
+  printf("Rate:   %0.2e lookups/s\n", n_lookups / elapsed_time);
 
   return 0;
 }
