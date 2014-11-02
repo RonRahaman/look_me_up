@@ -73,5 +73,7 @@ int main(int argc, char* argv[]) {
   printf("Time:   %0.2e s\n", wall_time);
   printf("Rate:   %0.2e lookups/s\n", n_lookups / wall_time);
 
+  free(F_vals);
+
   return 0;
 }
