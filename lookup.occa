@@ -1,0 +1,64 @@
+occaDeviceFunction double rn(unsigned long * seed)
+{
+  double ret;
+  unsigned long n1;
+  unsigned long a = 16807;
+  unsigned long m = 2147483647;
+  n1 = ( a * (*seed) ) % m;
+  *seed = n1;
+  ret = (double) n1 / m;
+  return ret;
+}
+
+
+occaKernel void lookup(occaPointer double *F_vals, occaConst long F_len, occaConst double interval, 
+    occaConst long total_lookups, occaPointer double *sums) {
+
+  occaOuterFor0 {
+    // A per-block cache.  Each thread i writes to sum_cache[i]
+    occaShared double sum_cache[inner_dim];
+
+    occaPrivate(long, i);
+    occaPrivate(long, j);
+    occaPrivate(long, k);
+    occaPrivate(double, x);
+    occaPrivate(double, f);
+    occaPrivate(unsigned long, seed);
+    occaPrivate(int, inner_id);
+    occaPrivate(int, cache_id);
+
+    occaInnerFor0 {
+
+      inner_id = occaGlobalId0;
+      cache_id = occaInnerId0;
+
+      seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
+
+      for (i=inner_id; i < total_lookups; i += occaGlobalDim0) {
+
+        // Randomly sample a continous value for x
+        x = (double) rn(&seed);
+
+        // Find the indices that bound x on the grid
+        j = x / interval;
+        k = j+1;
+
+        // Calculate interpolation factor
+        f = (k*interval - x) / (k*interval - j*interval);
+
+        // Interpolate and accumulate result
+        sum_cache[cache_id] += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+      }
+
+      occaBarrier(occaLocalMemFence);
+
+      // Naive reduction
+      for (i=outerDim0/2; i != 0; i /= 2) {
+        if (cache_id < i)
+          sum_cache[cache_id] += sum_cache[cache_id + i];
+          occaBarrier(occaLocalMemFence);
+      }
+      if (cache_id == 0) 
+        sums[blockIdx.x] = sum_cache[0];
+    }
+}
