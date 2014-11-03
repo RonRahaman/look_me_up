@@ -22,7 +22,7 @@ endif
 # If using NVCC, also compile CUDA version
 ifeq ($(CUDA_CC), nvcc)
   OBJECTS += main_cuda
-  CUDA_FLAGS =
+  CUDA_FLAGS = -arch=sm_35
 endif
 
 all: $(OBJECTS)
