@@ -8,10 +8,6 @@ array.  The key features are:
 - **Multiple threading APIs:**  The programs demonstrate multiple
   threading APIs, including OpenMP, CUDA, OpenACC, and OCCA.  
 
-- **Simple example for stochastic lookups:** Stochastic lookups can pose
-  interesting challenges for multithreading, but there are few simple demos for
-  the problem.  
-
 - **Easily verifiable result:** The data array is populated such that the
   stochastic lookups will perform a Monte Carlo integration.  For any threading
   implementation, the result should be the same, within statistical error. By
