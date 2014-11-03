@@ -10,7 +10,7 @@
 #define CUDA_CALL(F)  if( (F) != cudaSuccess ) \
 {printf("Error %s at %s:%d\n", cudaGetErrorString(cudaGetLastError()), __FILE__,__LINE__); exit(-1);} 
 
-const long blocks_per_grid = 128;
+const long blocks_per_grid = 64;
 const long threads_per_block = 128;  // Must be a power of 2 for reduction 
 
 __device__ double rn(unsigned long * seed)
@@ -122,7 +122,7 @@ int main(int argc, char* argv[]) {
   CUDA_CALL( cudaEventSynchronize( stop ) );
 
   // Copy dev_sums to sums
-  CUDA_CALL( cudaMemcpy( sums, dev_sums, threads_per_block*sizeof(double), cudaMemcpyDeviceToHost ));
+  CUDA_CALL( cudaMemcpy( sums, dev_sums, blocks_per_grid*sizeof(double), cudaMemcpyDeviceToHost ));
 
   // Get cumulative sum
   for (i=0; i<blocks_per_grid; i++) {
