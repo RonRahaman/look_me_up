@@ -45,7 +45,7 @@ int main(int argc, char* argv[]) {
 
   occaKernel lookup;
 
-  occaKernelInfo lookupInfo;
+  occaKernelInfo lookupInfo = occaGenKernelInfo();
   occaKernelInfoAddDefine(lookupInfo, "inner_dim", occaLong(inner_dim));
 
   printf("Running %0.2e lookups with %0.2e gridpoints in a %0.2f MB array...\n", 

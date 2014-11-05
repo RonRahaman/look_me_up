@@ -26,7 +26,7 @@ occaKernel void lookup(occaKernelInfoArg, occaPointer double *F_vals,
       const int cache_id = occaInnerId0;
       double private_sum = 0;
 
-      const unsigned long int seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
+      unsigned long int seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
 
       for (long int i=inner_id; i < total_lookups; i += occaGlobalDim0) {
 
