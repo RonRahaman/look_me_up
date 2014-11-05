@@ -10,62 +10,6 @@
 const long outer_dim = 128;
 const long inner_dim = 128;  // Must be a power of 2 for reduction 
 
-__device__ double rn(unsigned long * seed)
-{
-  double ret;
-  unsigned long n1;
-  unsigned long a = 16807;
-  unsigned long m = 2147483647;
-  n1 = ( a * (*seed) ) % m;
-  *seed = n1;
-  ret = (double) n1 / m;
-  return ret;
-}
-
-__global__ void lookup(double *F_vals, long F_len, double interval, 
-    long total_lookups, double *sums) {
-
-  // A per-block cache.  Each thread i writes to sum_cache[i]
-  __shared__ double sum_cache[threads_per_block];
-
-  long i,j,k;
-  double x, f;
-  unsigned long seed;
-
-  int thread_id = blockDim.x * blockIdx.x + threadIdx.x;
-  int cache_id = threadIdx.x;
-
-  seed = 10000*threadIdx.x + 10* blockIdx.x + threadIdx.x;
-
-  for (i=thread_id; i < total_lookups; i += gridDim.x*blockDim.x) {
-
-    // Randomly sample a continous value for x
-    x = (double) rn(&seed);
-
-    // Find the indices that bound x on the grid
-    j = x / interval;
-    k = j+1;
-
-    // Calculate interpolation factor
-    f = (k*interval - x) / (k*interval - j*interval);
-
-    // Interpolate and accumulate result
-    sum_cache[cache_id] += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
-  }
-
-  __syncthreads();
-
-  // Naive reduction
-  for (i=blockDim.x/2; i != 0; i /= 2) {
-    if (cache_id < i)
-      sum_cache[cache_id] += sum_cache[cache_id + i];
-    __syncthreads();
-  }
-  if (cache_id == 0) 
-    sums[blockIdx.x] = sum_cache[0];
-
-}
-
 
 
 int main(int argc, char* argv[]) {
@@ -85,7 +29,7 @@ int main(int argc, char* argv[]) {
   double *sums;
   // Timing
   // cudaEvent_t start, stop;
-  float elapsed_time;
+  // float elapsed_time;
   // Loop control
   long i;
 
@@ -101,12 +45,17 @@ int main(int argc, char* argv[]) {
 
   occaKernel lookup;
 
+  occaKernelInfo lookupInfo;
+  occaKernelInfoAddDefine(lookupInfo, "inner_dim", occaLong(inner_dim));
+
   printf("Running %0.2e lookups with %0.2e gridpoints in a %0.2f MB array...\n", 
       (double) n_lookups, (double) F_len, (double) F_len*sizeof(double)/1e6);
 
   device = occaGetDevice(mode, platformID, deviceID);
   inner_occa_dim.x = inner_dim;
   outer_occa_dim.x = outer_dim;
+
+  lookup = occaBuildKernelFromSource(device, "lookup.occa", "lookup", lookupInfo);
 
   occaKernelSetWorkingDims(lookup, dims, inner_occa_dim, outer_occa_dim);
 
@@ -140,10 +89,10 @@ int main(int argc, char* argv[]) {
   // printf("Rate:   %0.2e lookups/s\n", n_lookups / elapsed_time);
 
   // Cleanup
-  // CUDA_CALL( cudaEventDestroy( start ) );
-  // CUDA_CALL( cudaEventDestroy( stop ) );
-  // CUDA_CALL( cudaFree( dev_F_vals ) );
-  // CUDA_CALL( cudaFree( dev_sums ) );
+  occaMemoryFree( dev_F_vals );
+  occaMemoryFree( dev_sums );
+  occaKernelFree( lookup );
+  occaDeviceFree( device );
   free(F_vals);
   free(sums);
 

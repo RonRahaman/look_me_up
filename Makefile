@@ -1,5 +1,6 @@
 # Set compilers
 CC = gcc
+CXX = g++
 CUDA_CC = nvcc
 
 # Always compile serial and OMP versions
@@ -9,6 +10,13 @@ OBJECTS = main_serial main_omp main_omp_v2
 ifeq ($(CC),gcc)
   CFLAGS = -Wall -O3
   OMP_FLAGS = -fopenmp
+endif
+
+# G++
+ifeq ($(CXX),g++)
+  CFLAGS = -Wall -O3
+  OMP_FLAGS = -fopenmp
+  OCCA_FLAGS = -locca
 endif
 
 # If using PGCC, also compile ACC version
@@ -41,6 +49,9 @@ main_acc: main_acc.c
 
 main_cuda: main_cuda.cu
 	$(CUDA_CC) $(CUDA_FLAGS) $^ -o $@
+
+main_occa: main_occa.c 
+	$(CXX) $(CFLAGS) $^ $(OCCA_FLAGS) -o $@
 
 clean:
 	rm -f $(OBJECTS)

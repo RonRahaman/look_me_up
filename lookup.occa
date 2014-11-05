@@ -1,4 +1,4 @@
-occaDeviceFunction double rn(unsigned long * seed)
+occaDeviceFunction double rn(unsigned long int * seed)
 {
   double ret;
   unsigned long n1;
@@ -11,54 +11,58 @@ occaDeviceFunction double rn(unsigned long * seed)
 }
 
 
-occaKernel void lookup(occaPointer double *F_vals, occaConst long F_len, occaConst double interval, 
-    occaConst long total_lookups, occaPointer double *sums) {
+occaKernel void lookup(occaKernelInfoArg, occaPointer double *F_vals, 
+    occaConst long int occaVariable F_len, occaConst double occaVariable interval, 
+    occaConst long int occaVariable total_lookups, occaPointer double *sums) {
 
   occaOuterFor0 {
     // A per-block cache.  Each thread i writes to sum_cache[i]
     occaShared double sum_cache[inner_dim];
 
-    occaPrivate(long, i);
-    occaPrivate(long, j);
-    occaPrivate(long, k);
-    occaPrivate(double, x);
-    occaPrivate(double, f);
-    occaPrivate(unsigned long, seed);
-    occaPrivate(int, inner_id);
-    occaPrivate(int, cache_id);
-
     occaInnerFor0 {
 
-      inner_id = occaGlobalId0;
-      cache_id = occaInnerId0;
+      // Variables declared in the scope of an InnerFor loop are register variables
+      const int inner_id = occaGlobalId0;
+      const int cache_id = occaInnerId0;
+      double private_sum = 0;
 
-      seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
+      const unsigned long int seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
 
-      for (i=inner_id; i < total_lookups; i += occaGlobalDim0) {
+      for (long int i=inner_id; i < total_lookups; i += occaGlobalDim0) {
 
         // Randomly sample a continous value for x
-        x = (double) rn(&seed);
+        const double x = (double) rn(&seed);
 
         // Find the indices that bound x on the grid
-        j = x / interval;
-        k = j+1;
+        const long int j = x / interval;
+        const long int k = j+1;
 
         // Calculate interpolation factor
-        f = (k*interval - x) / (k*interval - j*interval);
+        const double f = (k*interval - x) / (k*interval - j*interval);
 
         // Interpolate and accumulate result
-        sum_cache[cache_id] += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+        private_sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+      }
+      sum_cache[cache_id] = private_sum;
+    }
+
+    occaBarrier(occaLocalMemFence);
+
+    for (int i=occaInnerDim0/2; i != 0; i /= 2) {
+      occaInnerFor0 {
+
+        const int cache_id = occaInnerId0;
+
+        // Naive reduction
+        if (cache_id < i)
+          sum_cache[cache_id] += sum_cache[cache_id + i];
       }
 
       occaBarrier(occaLocalMemFence);
-
-      // Naive reduction
-      for (i=outerDim0/2; i != 0; i /= 2) {
-        if (cache_id < i)
-          sum_cache[cache_id] += sum_cache[cache_id + i];
-          occaBarrier(occaLocalMemFence);
-      }
-      if (cache_id == 0) 
-        sums[blockIdx.x] = sum_cache[0];
     }
+    occaInnerFor0{
+      if (occaInnerId0 == 0) 
+        sums[occaOuterId0] = sum_cache[0];
+    }
+  }
 }
