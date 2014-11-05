@@ -53,5 +53,8 @@ main_cuda: main_cuda.cu
 main_occa: main_occa.c 
 	$(CC) $(CFLAGS) $^ $(OCCA_FLAGS) -o $@
 
+main_okl: main_okl.c
+	$(CC) $(CFLAGS) $^ $(OCCA_FLAGS) -o $@
+
 clean:
 	rm -f $(OBJECTS)

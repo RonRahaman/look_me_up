@@ -4,4 +4,5 @@ main_omp_v2
 main_acc
 main_cuda
 main_occa
+main_okl
 *.swp

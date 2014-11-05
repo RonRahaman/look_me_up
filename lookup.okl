@@ -1,0 +1,71 @@
+occaDeviceFunction double rn(unsigned long int * seed)
+{
+  double ret;
+  unsigned long n1;
+  unsigned long a = 16807;
+  unsigned long m = 2147483647;
+  n1 = ( a * (*seed) ) % m;
+  *seed = n1;
+  ret = (double) n1 / m;
+  return ret;
+}
+
+
+/* occaKernel void lookup(occaKernelInfoArg, occaPointer double *F_vals, */ 
+/*     occaConst long int occaVariable F_len, occaConst double occaVariable interval, */ 
+/*     occaConst long int occaVariable total_lookups, occaPointer double *sums) { */
+
+occaKernel void lookup(double *F_vals, 
+    const long int F_len, const double interval, 
+    const long int total_lookups, double *sums) {
+
+  for(int block=0; block<outer_dim; ++block; outer0) {
+    // A per-block cache.  Each thread i writes to sum_cache[i]
+    shared double sum_cache[inner_dim];
+
+    for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
+
+      // Variables declared in the scope of an InnerFor loop are register variables
+      const int inner_id = block*inner_dim + cache_id;
+      double private_sum = 0;
+
+      unsigned long int seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
+
+      for (long int i=inner_id; i < total_lookups; i += occaGlobalDim0) {
+
+        // Randomly sample a continous value for x
+        const double x = (double) rn(&seed);
+
+        // Find the indices that bound x on the grid
+        const long int j = x / interval;
+        const long int k = j+1;
+
+        // Calculate interpolation factor
+        const double f = (k*interval - x) / (k*interval - j*interval);
+
+        // Interpolate and accumulate result
+        private_sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+      }
+      sum_cache[cache_id] = private_sum;
+    }
+
+    barrier(localMemFence);
+
+    for (int i=inner_dim/2; i != 0; i /= 2) {
+      for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
+
+        const int cache_id = occaInnerId0;
+
+        // Naive reduction
+        if (cache_id < i && cache_id + i < inner_dim)
+          sum_cache[cache_id] += sum_cache[cache_id + i];
+      }
+
+      barrier(localMemFence);
+    }
+    for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
+      if (cache_id == 0) 
+        sums[block] = sum_cache[0];
+    }
+  }
+}
