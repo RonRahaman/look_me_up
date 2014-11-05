@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
 
   device = occaGetDevice(mode, platformID, deviceID);
 
-  lookup = occaBuildKernelFromSource(device, "lookup.occa", "lookup", lookupInfo);
+  lookup = occaBuildKernelFromSource(device, "lookup.okl", "lookup", lookupInfo);
 
 
   dev_sums = occaDeviceMalloc(device, outer_dim*sizeof(double), NULL);
