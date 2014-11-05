@@ -51,7 +51,7 @@ main_cuda: main_cuda.cu
 	$(CUDA_CC) $(CUDA_FLAGS) $^ -o $@
 
 main_occa: main_occa.c 
-	$(CXX) $(CFLAGS) $^ $(OCCA_FLAGS) -o $@
+	$(CC) $(CFLAGS) $^ $(OCCA_FLAGS) -o $@
 
 clean:
 	rm -f $(OBJECTS)
