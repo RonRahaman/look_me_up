@@ -1,9 +1,9 @@
-occaDeviceFunction double rn(unsigned long int * seed)
+occaFunction double rn(unsigned long int * seed)
 {
   double ret;
-  unsigned long n1;
-  unsigned long a = 16807;
-  unsigned long m = 2147483647;
+  unsigned long int n1;
+  unsigned long int a = 16807;
+  unsigned long int m = 2147483647;
   n1 = ( a * (*seed) ) % m;
   *seed = n1;
   ret = (double) n1 / m;
@@ -53,8 +53,6 @@ occaKernel void lookup(double *F_vals,
 
     for (int i=inner_dim/2; i != 0; i /= 2) {
       for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
-
-        const int cache_id = occaInnerId0;
 
         // Naive reduction
         if (cache_id < i && cache_id + i < inner_dim)

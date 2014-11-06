@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <math.h>
 #include "occa_c.h"
+#include <sys/time.h>
 
 // function to integrate
 #define F(x) (x*x)
@@ -37,6 +38,9 @@ int main(int argc, char* argv[]) {
   int platformID = 0;
   int deviceID   = 0;
 
+  struct timeval start, end;
+  double wall_time;
+
   occaDevice device;
   occaMemory dev_sums, dev_F_vals;
 
@@ -69,7 +73,15 @@ int main(int argc, char* argv[]) {
   occaCopyPtrToMem(dev_sums, sums, outer_dim*sizeof(double), 0);
   occaCopyPtrToMem(dev_F_vals, F_vals, F_len*sizeof(double), 0);
 
+  occaDeviceFinish(device);
+  gettimeofday(&start, NULL);
+
   occaKernelRun( lookup, dev_F_vals, occaLong(F_len), occaDouble(interval), occaLong(n_lookups), dev_sums);
+
+  occaDeviceFinish(device);
+  gettimeofday(&end, NULL);
+
+  wall_time = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec - start.tv_usec);
 
   // Copy dev_sums to sums
   occaCopyMemToPtr(sums, dev_sums, outer_dim*sizeof(double), 0);
@@ -81,8 +93,8 @@ int main(int argc, char* argv[]) {
 
   // Get timings
   printf("Result: %0.6f\n", sum / n_lookups);
-  // printf("Time:   %0.2e s\n", elapsed_time);
-  // printf("Rate:   %0.2e lookups/s\n", n_lookups / elapsed_time);
+  printf("Time:   %0.2e s\n", wall_time);
+  printf("Rate:   %0.2e lookups/s\n", n_lookups / wall_time);
 
   // Cleanup
   occaMemoryFree( dev_F_vals );
