@@ -11,8 +11,6 @@
 const long outer_dim = 128;
 const long inner_dim = 128;  // Must be a power of 2 for reduction 
 
-
-
 int main(int argc, char* argv[]) {
 
   // number of lookups
@@ -24,10 +22,11 @@ int main(int argc, char* argv[]) {
   // interval for linearly-spaced grid
   double interval = (double) 1 / (F_len - 1);
   // Sum of random lookups on F_vals
-  double sum = 0;
-  // Vectors for sums of F(x_i).  Dimensions will be sums[0:blocks_per_grid].
-  // Each block j will reduce is results to sum[i].
-  double *sums;
+  double F_sum = 0;
+  // Vectors for sums of F(x_i).  Dimensions will be F_sums[0:outer_dim].
+  // In kernel, Each outer unit j will reduce is results to F_sum[i].
+  // In main, we will need to reduce F_sums to get a single F_sum
+  double *F_sums;
   // Timing
   // cudaEvent_t start, stop;
   // float elapsed_time;
@@ -42,8 +41,7 @@ int main(int argc, char* argv[]) {
   double wall_time;
 
   occaDevice device;
-  occaMemory dev_sums, dev_F_vals;
-
+  occaMemory dev_F_sums, dev_F_vals;
 
   occaKernel lookup;
 
@@ -59,10 +57,10 @@ int main(int argc, char* argv[]) {
   lookup = occaBuildKernelFromSource(device, "lookup.okl", "lookup", lookupInfo);
 
 
-  dev_sums = occaDeviceMalloc(device, outer_dim*sizeof(double), NULL);
+  dev_F_sums = occaDeviceMalloc(device, outer_dim*sizeof(double), NULL);
   dev_F_vals = occaDeviceMalloc(device, F_len*sizeof(double), NULL);
 
-  sums = (double *) calloc( outer_dim, sizeof(double) );
+  F_sums = (double *) calloc( outer_dim, sizeof(double) );
   F_vals = (double *) malloc(F_len*sizeof(double));
 
   // Populate values for F(x) on grid
@@ -70,39 +68,39 @@ int main(int argc, char* argv[]) {
     F_vals[i] = F(i*interval);
   }
 
-  occaCopyPtrToMem(dev_sums, sums, outer_dim*sizeof(double), 0);
+  occaCopyPtrToMem(dev_F_sums, F_sums, outer_dim*sizeof(double), 0);
   occaCopyPtrToMem(dev_F_vals, F_vals, F_len*sizeof(double), 0);
 
   occaDeviceFinish(device);
   gettimeofday(&start, NULL);
 
-  occaKernelRun( lookup, dev_F_vals, occaLong(F_len), occaDouble(interval), occaLong(n_lookups), dev_sums);
+  occaKernelRun( lookup, dev_F_vals, occaLong(F_len), occaDouble(interval), occaLong(n_lookups), dev_F_sums);
 
   occaDeviceFinish(device);
   gettimeofday(&end, NULL);
 
   wall_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1000000.;
 
-  // Copy dev_sums to sums
-  occaCopyMemToPtr(sums, dev_sums, outer_dim*sizeof(double), 0);
+  // Copy dev_F_sums to F_sums
+  occaCopyMemToPtr(F_sums, dev_F_sums, outer_dim*sizeof(double), 0);
 
-  // Get cumulative sum
+  // Get cumulative F_sum
   for (i=0; i<outer_dim; i++) {
-    sum += sums[i];
+    F_sum += F_sums[i];
   }
 
   // Get timings
-  printf("Result: %0.6f\n", sum / n_lookups);
+  printf("Result: %0.6f\n", F_sum / n_lookups);
   printf("Time:   %0.2e s\n", wall_time);
   printf("Rate:   %0.2e lookups/s\n", n_lookups / wall_time);
 
   // Cleanup
   occaMemoryFree( dev_F_vals );
-  occaMemoryFree( dev_sums );
+  occaMemoryFree( dev_F_sums );
   occaKernelFree( lookup );
   occaDeviceFree( device );
   free(F_vals);
-  free(sums);
+  free(F_sums);
 
   return 0;
 }
