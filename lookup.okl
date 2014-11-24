@@ -45,9 +45,9 @@ occaKernel void lookup(double *F_vals,
 
         // Interpolate and accumulate result
         private_sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
-      }
+      } // lookup loop
       sum_cache[cache_id] = private_sum;
-    }
+    } //innner 0
 
     barrier(localMemFence);
 

@@ -81,7 +81,7 @@ int main(int argc, char* argv[]) {
   occaDeviceFinish(device);
   gettimeofday(&end, NULL);
 
-  wall_time = (end.tv_sec - start.tv_sec)*1000000 + (end.tv_usec - start.tv_usec);
+  wall_time = (end.tv_sec - start.tv_sec) + (end.tv_usec - start.tv_usec)/1000000.;
 
   // Copy dev_sums to sums
   occaCopyMemToPtr(sums, dev_sums, outer_dim*sizeof(double), 0);
