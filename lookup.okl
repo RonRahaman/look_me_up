@@ -17,21 +17,21 @@ occaFunction double rn(unsigned long int * seed)
 
 occaKernel void lookup(double *F_vals, 
     const long int F_len, const double interval, 
-    const long int total_lookups, double *sums) {
+    const long int total_lookups, double *F_sums) {
 
-  for(int block=0; block<outer_dim; ++block; outer0) {
-    // A per-block cache.  Each thread i writes to sum_cache[i]
-    shared double sum_cache[inner_dim];
+  for(int outer_id=0; outer_id<outer_dim; ++outer_id; outer0) {
+    // A cache per outer unit.  Each inner unit i writes to F_sums_cache[i]
+    shared double F_sums_cache[inner_dim];
 
-    for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
+    for (int inner_id=0; inner_id<inner_dim; ++inner_id; inner0) {
 
       // Variables declared in the scope of an InnerFor loop are register variables
-      const int inner_id = block*inner_dim + cache_id;
-      double private_sum = 0;
+      const int global_id = outer_id*inner_dim + inner_id;
+      double inner_F_sum = 0;
 
       unsigned long int seed = 10000*occaInnerId0 + 10*occaOuterId0 + 1;
 
-      for (long int i=inner_id; i < total_lookups; i += occaGlobalDim0) {
+      for (long int i=global_id; i < total_lookups; i += occaGlobalDim0) {
 
         // Randomly sample a continous value for x
         const double x = (double) rn(&seed);
@@ -44,26 +44,28 @@ occaKernel void lookup(double *F_vals,
         const double f = (k*interval - x) / (k*interval - j*interval);
 
         // Interpolate and accumulate result
-        private_sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+        inner_F_sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
       } // lookup loop
-      sum_cache[cache_id] = private_sum;
-    } //innner 0
+      F_sums_cache[inner_id] = inner_F_sum;
+    } //inner 0
 
     barrier(localMemFence);
 
     for (int i=inner_dim/2; i != 0; i /= 2) {
-      for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
+      for (int inner_id=0; inner_id<inner_dim; ++inner_id; inner0) {
 
         // Naive reduction
-        if (cache_id < i && cache_id + i < inner_dim)
-          sum_cache[cache_id] += sum_cache[cache_id + i];
+        if (inner_id < i && inner_id + i < inner_dim)
+          F_sums_cache[inner_id] += F_sums_cache[inner_id + i];
       }
 
       barrier(localMemFence);
-    }
-    for (int cache_id=0; cache_id<inner_dim; ++cache_id; inner0) {
-      if (cache_id == 0) 
-        sums[block] = sum_cache[0];
-    }
-  }
+    } //inner 0
+
+    for (int inner_id=0; inner_id<inner_dim; ++inner_id; inner0) {
+      if (inner_id == 0) 
+        F_sums[outer_id] = F_sums_cache[0];
+    } // inner 0
+
+  } // outer0
 }
