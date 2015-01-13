@@ -1,5 +1,5 @@
 # Set compilers
-CC = gcc
+CC = pgcc
 CXX = g++
 CUDA_CC = nvcc
 
