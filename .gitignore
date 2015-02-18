@@ -6,4 +6,5 @@ main_cuda
 main_occa
 main_okl
 main_mpi
+main_mpi_omp
 *.swp

@@ -28,8 +28,11 @@ int main(int argc, char* argv[]) {
   double global_sum = 0;     // Sum of random lookups on F_vals for all procs
   unsigned long seed;        // RNG seed
 
-  double start, end;         // start and end times
-  double wall_time;          // wall_time elapsed
+  double tick, tock;         // start and end times
+  double my_wtime;           // wall_time elapsed
+  double total_wtime;        // total wall time
+  double max_wtime;          // average wall time
+  double min_wtime;          // average wall time
   long i, j, k;              // loop control
   double x, f;               // x value and interpolation factor
   int opt;                   // command line option
@@ -69,6 +72,7 @@ int main(int argc, char* argv[]) {
   // Set RNG seed
   seed = rank*19 + 17;
 
+  tick = MPI_Wtime();
   for (i=rank; i < n_lookups; i += n_procs) {
 
     // Randomly sample a continous value for x
@@ -83,11 +87,22 @@ int main(int argc, char* argv[]) {
 
     my_sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
   }
+  tock = MPI_Wtime();
 
-  MPI_Reduce(&my_sum, &global_sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  my_wtime = tock - tick;
 
-  if (rank == 0)
-    printf("Result: %0.6f\n", global_sum / n_lookups);
+  MPI_Reduce(&my_sum,   &global_sum,  1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&my_wtime, &total_wtime, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&my_wtime, &min_wtime,   1, MPI_DOUBLE, MPI_MIN, 0, MPI_COMM_WORLD);
+  MPI_Reduce(&my_wtime, &max_wtime,   1, MPI_DOUBLE, MPI_MAX, 0, MPI_COMM_WORLD);
+
+  if (rank == 0) {
+    printf("Result:   %0.6f\n", global_sum / n_lookups);
+    printf("Min time: %0.2e s\n", min_wtime);
+    printf("Max time: %0.2e s\n", max_wtime);
+    printf("Avg time: %0.2e s\n", total_wtime / n_procs);
+    printf("Avg rate: %0.2e lookups/s\n", n_lookups * n_procs / total_wtime);
+  }
 
   free(F_vals);
 

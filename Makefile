@@ -5,7 +5,7 @@ MPICC = mpicc.openmpi
 CUDA_CC = nvcc
 
 # Always compile serial and OMP versions
-OBJECTS = main_serial main_omp main_omp_v2 main_mpi
+OBJECTS = main_serial main_omp main_omp_v2 main_mpi_omp
 
 # GCC
 ifeq ($(CC),gcc)
@@ -38,9 +38,6 @@ all: $(OBJECTS)
 
 main_serial: main_serial.c
 	$(CC) $(CFLAGS) $^ -o $@
-
-main_mpi: main_mpi.c
-	$(MPICC) $(CFLAGS) $^ -o $@
 
 main_omp: main_omp.c
 	$(CC) $(CFLAGS) $(OMP_FLAGS) $^ -o $@
