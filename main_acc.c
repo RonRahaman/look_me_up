@@ -115,32 +115,33 @@ int main(int argc, char* argv[]) {
     F_vals[i] = F(i*interval);
   }
 
-// #pragma acc data copyin(F_vals[0:n_grid])
-
   gettimeofday(&start, NULL);
 
     // Initialize seeds
     // seed = 1000;
 
-#pragma acc parallel loop copyin(F_vals[0:n_grid]) reduction(+:sum)
-  for (long i=0; i<n_lookups; i++) {
+#pragma acc data copyin(F_vals[0:n_grid]), copyout(sum)
+  {
+#pragma acc parallel for reduction(+:sum)
+    for (long i=0; i<n_lookups; i++) {
 
-    // Randomly sample a continous value for x
-    double x = (double) rn(i);
-    // double x = (double) rn(&seed);
-    // double x =rn_s(RN_S_SEED, (long) i);
-    // double x = (double) rand() / RAND_MAX;
+      // Randomly sample a continous value for x
+      double x = (double) rn(i);
+      // double x = (double) rn(&seed);
+      // double x =rn_s(RN_S_SEED, (long) i);
+      // double x = (double) rand() / RAND_MAX;
 
 
-    // Find the indices that bound x on the grid
-    long j = x / interval;
-    long k = j+1;
+      // Find the indices that bound x on the grid
+      long j = x / interval;
+      long k = j+1;
 
-    // Calculate interpolation factor
-    double f = (k*interval - x) / (k*interval - j*interval);
+      // Calculate interpolation factor
+      double f = (k*interval - x) / (k*interval - j*interval);
 
-    // Interpolate and accumulate result
-    sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+      // Interpolate and accumulate result
+      sum += F_vals[j+1] - f * (F_vals[j+1] - F_vals[j]);
+    }
   }
 
   gettimeofday(&end, NULL);
